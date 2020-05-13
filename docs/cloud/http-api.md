@@ -207,9 +207,9 @@ curl -u "api_key:<Your Grafana.com API Key>" https://$base_out/tags/delSeries -d
 ```
 
 ### Finding Metrics
-#### Non-tagged With `/metrics/find`
+#### Non-tagged with `/metrics/expand`
 
-Returns metrics which match the `query` and have received an update since `from`.
+Returns metrics which match the `query`.
 
 * Method: GET or POST
 * API key type: any (including MetricsPublisher)
@@ -220,7 +220,43 @@ Returns metrics which match the `query` and have received an update since `from`
 
 ##### Parameters
 
-* query (required): [Graphite pattern](#graphite-patterns)
+* query: required and may be specified multiple times, in the format described in [Graphite pattern](#graphite-patterns)
+* groupByExpr: if true, then the results get grouped by the query which yielded them, otherwise all results are in a flat list. (defaults to false)
+* leavesOnly: if true, only leaf nodes get returned, if false branch nodes also get returned. (defaults to false)
+* jsonp: true/false: enables jsonp
+
+##### Example
+
+```sh
+curl -H "Authorization: Bearer $key" "$base_out/metrics/expand?groupByExpr=true&query=some.id.of.a.metric.[1-3]&query=some.id.of.a.metric.[67]"
+{
+    "some.id.of.a.metric.[1-3]": [
+        "some.id.of.a.metric.1",
+        "some.id.of.a.metric.2",
+        "some.id.of.a.metric.3"
+    ],
+    "some.id.of.a.metric.[67]": [
+        "some.id.of.a.metric.6",
+        "some.id.of.a.metric.7"
+    ]
+}
+```
+
+#### Non-tagged With `/metrics/find`
+
+Returns metrics which match the `query` and have received an update since `from`,
+de-duplicated by the last name node (used for the name auto-complete).
+
+* Method: GET or POST
+* API key type: any (including MetricsPublisher)
+
+##### Headers
+
+* `Authorization: Bearer <api-key>` required
+
+##### Parameters
+
+* query: required and may be specified multiple times, in the format described in  [Graphite pattern](#graphite-patterns)
 * format: json, treejson, completer, pickle, or msgpack. (defaults to json)
 * jsonp: true/false: enables jsonp
 * from: Graphite from time specification (defaults to now-24hours)
