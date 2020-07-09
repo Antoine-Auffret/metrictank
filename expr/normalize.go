@@ -65,7 +65,7 @@ func NormalizeTo(dataMap DataMap, in models.Series, interval uint32) models.Seri
 	// so add nulls in front and at the back to make it pre-canonical.
 	// this may make points in front and at the back less accurate when consolidated (e.g. summing when some of the points are null results in a lower value)
 	// but this is what graphite does....
-	datapoints := pointSlicePool.Get().([]schema.Point)
+	datapoints := pointSlicePool.Get()
 	datapoints = makePreCanonicalCopy(in, interval, datapoints)
 
 	// series may have been created by a function that didn't know which consolidation function to default to.

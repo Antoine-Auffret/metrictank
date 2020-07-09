@@ -71,16 +71,10 @@ func Fix(in []schema.Point, from, to, interval uint32) []schema.Point {
 		// the requested range is too narrow for the requested interval
 		return []schema.Point{}
 	}
-	// try to get a sufficiently sized slice from the pool. if it fails, allocate a new one.
-	var out []schema.Point
+
 	neededCap := int((last-first)/interval + 1)
-	candidate := pointSlicePool.Get().([]schema.Point)
-	if cap(candidate) >= neededCap {
-		out = candidate[:neededCap]
-	} else {
-		pointSlicePool.Put(candidate)
-		out = make([]schema.Point, neededCap)
-	}
+	out := pointSlicePool.GetMin(neededCap)
+	out = out[:neededCap]
 
 	// i iterates in. o iterates out. t is the ts we're looking to fill.
 	for t, i, o := first, 0, -1; t <= last; t += interval {
@@ -120,7 +114,7 @@ func Fix(in []schema.Point, from, to, interval uint32) []schema.Point {
 			o -= 1
 		}
 	}
-	pointSlicePool.Put(in[:0])
+	pointSlicePool.Put(in)
 
 	return out
 }
@@ -146,7 +140,7 @@ func divide(pointsA, pointsB []schema.Point) []schema.Point {
 	for i := range pointsA {
 		pointsA[i].Val /= pointsB[i].Val
 	}
-	pointSlicePool.Put(pointsB[:0])
+	pointSlicePool.Put(pointsB)
 	return pointsA
 }
 
@@ -480,7 +474,7 @@ func (s *Server) getSeries(ctx *requestContext, ss *models.StorageStats) (mdata.
 func (s *Server) itersToPoints(ctx *requestContext, iters []tsz.Iter) []schema.Point {
 	pre := time.Now()
 
-	points := pointSlicePool.Get().([]schema.Point)
+	points := pointSlicePool.Get()
 	for _, iter := range iters {
 		total := 0
 		good := 0
@@ -666,7 +660,7 @@ func mergeSeries(in []models.Series, dataMap expr.DataMap) []models.Series {
 				}
 			}
 			for j := 1; j < len(series); j++ {
-				pointSlicePool.Put(series[j].Datapoints[:0])
+				pointSlicePool.Put(series[j].Datapoints)
 			}
 			merged[i] = series[0]
 			for j := 1; j < len(series); j++ {
